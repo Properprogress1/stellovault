@@ -143,6 +143,8 @@ export class EscrowService {
             },
         });
 
+        websocketService.broadcastEscrowCreated(escrow.id, escrow.buyerId, escrow.sellerId);
+
         return {
             escrowId: escrow.id,
             xdr: ensureBase64(unsignedXdr),
