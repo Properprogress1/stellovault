@@ -2,7 +2,10 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import { createServer } from "http";
+import WebSocket from "ws";
 import { env } from "./config/env";
+import websocketService, { WsState } from "./services/websocket.service";
 
 // Routes
 import authRoutes from "./routes/auth.routes";
@@ -55,8 +58,32 @@ app.use(notFoundMiddleware);
 app.use(errorMiddleware);
 
 const port = env.port;
-app.listen(port, () => {
+
+// ── Create HTTP + WebSocket Server ────────────────────────────────────────
+const server = createServer(app);
+const wsState = websocketService.getWsState();
+
+// ── WebSocket Server ────────────────────────────────────────────────────────
+const wss = new WebSocket.Server({ 
+    server,
+    path: '/ws'
+});
+
+wss.on('connection', (ws: WebSocket, req) => {
+    console.log(`WebSocket client connected from ${req.socket.remoteAddress}`);
+    wsState.addConnection(ws);
+    
+    ws.send(JSON.stringify({ 
+        type: 'CONNECTION_ESTABLISHED', 
+        message: 'Connected to StelloVault WebSocket',
+        timestamp: new Date().toISOString()
+    }));
+});
+
+// ── Start Server ───────────────────────────────────────────────────────────
+server.listen(port, () => {
     console.log(`StelloVault server running on http://localhost:${port}`);
+    console.log(`WebSocket endpoint: ws://localhost:${port}/ws`);
     console.log(`Routes mounted at ${api}`);
 });
 
